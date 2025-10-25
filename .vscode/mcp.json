@@ -1,0 +1,18 @@
+{
+  "servers": {
+    "context7": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "better-auth": {
+      "url": "https://mcp.chonkie.ai/better-auth/better-auth-builder/mcp",
+      "type": "http"
+    },
+    "shadcn": {
+      "command": "bunx",
+      "args": ["shadcn@latest", "mcp"]
+    }
+  },
+  "inputs": []
+}
