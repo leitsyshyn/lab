@@ -15,6 +15,13 @@
       "when": 1761340907179,
       "tag": "0001_flimsy_hardball",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761600013793,
+      "tag": "0002_majestic_morph",
+      "breakpoints": true
     }
   ]
 }
