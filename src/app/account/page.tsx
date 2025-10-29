@@ -4,7 +4,7 @@ import OrganizationCard from "@/components/auth/account/organization/organizatio
 import UserCard from "@/components/auth/account/user/user-card";
 import { auth } from "@/lib/auth";
 
-export default async function UserCardPage() {
+export default async function AccountPage() {
   const [session, activeSessions, organization] = await Promise.all([
     auth.api.getSession({
       headers: await headers(),

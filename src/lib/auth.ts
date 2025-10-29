@@ -1,12 +1,21 @@
+import { stripe } from "@better-auth/stripe";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins/organization";
+import Stripe from "stripe";
 import { reactResetPasswordEmail } from "@/components/auth/emails/reset-password-email";
 import { reactVerifyEmailEmail } from "@/components/auth/emails/verification-email";
 
 import { db } from "@/db/drizzle";
 import * as schema from "@/db/schema/auth";
 import { resend } from "./email";
+
+const stripeClient = new Stripe(
+  process.env.STRIPE_SECRET_KEY || "sk_test_placeholder",
+  {
+    apiVersion: "2025-09-30.clover",
+  },
+);
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -73,6 +82,30 @@ export const auth = betterAuth({
             <p>This invitation will expire on ${new Date(data.invitation.expiresAt).toLocaleDateString()}.</p>
           `,
         });
+      },
+    }),
+    stripe({
+      stripeClient,
+      stripeWebhookSecret:
+        process.env.STRIPE_WEBHOOK_SECRET || "whsec_placeholder",
+      createCustomerOnSignUp: true,
+      subscription: {
+        enabled: true,
+        plans: [
+          {
+            name: "free",
+            priceId: "price_free",
+          },
+          {
+            name: "plus",
+            priceId: process.env.STRIPE_PLUS_PRICE_ID || "price_plus",
+          },
+          {
+            name: "enterprise",
+            priceId:
+              process.env.STRIPE_ENTERPRISE_PRICE_ID || "price_enterprise",
+          },
+        ],
       },
     }),
   ],

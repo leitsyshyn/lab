@@ -2,10 +2,11 @@
 
 import { Laptop, LogOut, Mail, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { UAParser } from "ua-parser-js";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,16 +30,56 @@ import { authClient } from "@/lib/auth-client";
 import type { Session } from "@/types/auth-types";
 import { ChangePasswordDialog } from "./change-password-dialog";
 import { EditUserDialog } from "./edit-user-dialog";
+import { SubscriptionDialog } from "./subscription-dialog";
 
 interface UserCardProps {
   session: Session | null;
   activeSessions: Session["session"][];
 }
 
+type Subscription = {
+  id: string;
+  plan: string;
+  status: string;
+  stripeSubscriptionId?: string;
+  periodEnd?: Date;
+  cancelAtPeriodEnd?: boolean;
+};
+
 export default function UserCard({ session, activeSessions }: UserCardProps) {
   const router = useRouter();
   const [emailVerificationPending, setEmailVerificationPending] =
     useState(false);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [loadingSubscriptions, setLoadingSubscriptions] = useState(true);
+
+  useEffect(() => {
+    if (!session) return;
+
+    const fetchSubscriptions = async () => {
+      try {
+        const result = await authClient.subscription.list();
+        setSubscriptions((result.data as Subscription[]) || []);
+      } catch (error) {
+        console.error("Failed to fetch subscriptions:", error);
+      } finally {
+        setLoadingSubscriptions(false);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchSubscriptions();
+      }
+    };
+
+    fetchSubscriptions();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [session]);
 
   const handleSendVerificationEmail = async () => {
     if (!session?.user.email) return;
@@ -91,6 +132,29 @@ export default function UserCard({ session, activeSessions }: UserCardProps) {
     return null;
   }
 
+  const activeSubscription = subscriptions.find(
+    (sub) => sub.status === "active" || sub.status === "trialing",
+  );
+  const isCancelScheduled = !!activeSubscription?.cancelAtPeriodEnd;
+  const currentPlan = activeSubscription?.plan || "free";
+  const hasActiveSubscription = !!activeSubscription;
+
+  const handleManageBilling = async () => {
+    try {
+      const result = await authClient.subscription.billingPortal({
+        returnUrl: `${window.location.origin}/account`,
+      });
+
+      if (result.data?.url) {
+        window.location.href = result.data.url;
+      } else {
+        toast.error("Failed to open billing portal");
+      }
+    } catch {
+      toast.error("Failed to open billing portal");
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -121,6 +185,75 @@ export default function UserCard({ session, activeSessions }: UserCardProps) {
                   image: session.user.image,
                 }}
               />
+            </ItemActions>
+          </Item>
+          <Item className="p-0">
+            <ItemHeader className="font-semibold">Subscription</ItemHeader>
+            <ItemContent className="space-y-2">
+              {loadingSubscriptions ? (
+                <ItemDescription>Loading...</ItemDescription>
+              ) : (
+                <>
+                  <ItemTitle>
+                    <div className="flex items-center gap-2">
+                      <span>
+                        {currentPlan.charAt(0).toUpperCase() +
+                          currentPlan.slice(1)}{" "}
+                        Plan
+                      </span>
+                      <Badge
+                        variant={
+                          currentPlan === "free" ? "secondary" : "default"
+                        }
+                      >
+                        {activeSubscription?.status || "free"}
+                      </Badge>
+                    </div>
+                  </ItemTitle>
+                  {activeSubscription?.periodEnd && !isCancelScheduled && (
+                    <ItemDescription>
+                      Next charge:{" "}
+                      {new Date(
+                        activeSubscription.periodEnd,
+                      ).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </ItemDescription>
+                  )}
+                  {activeSubscription?.periodEnd && isCancelScheduled && (
+                    <ItemDescription>
+                      Subscription will end:{" "}
+                      {new Date(
+                        activeSubscription.periodEnd,
+                      ).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </ItemDescription>
+                  )}
+                  {!activeSubscription && (
+                    <ItemDescription>
+                      Upgrade to unlock premium features
+                    </ItemDescription>
+                  )}
+                </>
+              )}
+            </ItemContent>
+            <ItemActions>
+              {hasActiveSubscription ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleManageBilling}
+                >
+                  Manage Billing
+                </Button>
+              ) : (
+                <SubscriptionDialog />
+              )}
             </ItemActions>
           </Item>
           {!session.user.emailVerified && (
