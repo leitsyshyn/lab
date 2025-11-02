@@ -1,7 +1,10 @@
 "use client";
 
+import { Crown } from "lucide-react";
+import Link from "next/link";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import Todos from "@/components/todos";
+import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 export default function Home() {
@@ -22,6 +25,12 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {session?.user && (
             <>
+              <Link href="/plus-features">
+                <Button variant="outline" size="sm">
+                  <Crown className="w-4 h-4 mr-2" />
+                  Plus Features
+                </Button>
+              </Link>
               <span className="text-sm text-muted-foreground">
                 {session.user.email}
               </span>
