@@ -17,6 +17,9 @@ const stripeClient = new Stripe(
   },
 );
 
+const isTestMode =
+  process.env.NODE_ENV === "test" || process.env.PLAYWRIGHT_TEST === "true";
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -26,8 +29,12 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: !isTestMode,
     async sendResetPassword({ user, url }) {
+      if (isTestMode) {
+        console.log(`[TEST MODE] Password reset link: ${url}`);
+        return;
+      }
       await resend.emails.send({
         from: process.env.BETTER_AUTH_EMAIL_FROM as string,
         to: user.email,
@@ -37,9 +44,13 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendOnSignIn: true,
-    sendOnSignUp: true,
+    sendOnSignIn: !isTestMode,
+    sendOnSignUp: !isTestMode,
     async sendVerificationEmail({ user, url }) {
+      if (isTestMode) {
+        console.log(`[TEST MODE] Email verification link: ${url}`);
+        return;
+      }
       await resend.emails.send({
         from: process.env.BETTER_AUTH_EMAIL_FROM as string,
         to: user.email,
