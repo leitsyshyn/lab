@@ -1,5 +1,6 @@
 import {
   clearAuthState,
+  deleteTestUser,
   generateTestUser,
   isAuthenticated,
   waitForToast,
@@ -25,6 +26,10 @@ test.describe("Authenticated Session Flow", () => {
     ]).catch(() => {});
 
     await page.close();
+  });
+
+  test.afterAll(async () => {
+    await deleteTestUser(testUser.email);
   });
 
   test.beforeEach(async ({ page }) => {

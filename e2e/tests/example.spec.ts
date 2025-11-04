@@ -60,11 +60,10 @@ test.describe("Example: Complete User Journey", () => {
   test("example: testing validation errors", async ({ page, authPage }) => {
     await authPage.gotoSignUp();
 
-    await page.fill("#sign-up-name", "A"); // Too short
-    await page.fill("#sign-up-email", "invalid"); // Invalid format
-    await page.fill("#sign-up-password", "short"); // Too short
-    await page.fill("#sign-up-confirm-password", "different"); // Doesn't match
-
+    await page.fill("#sign-up-name", "A");
+    await page.fill("#sign-up-email", "invalid");
+    await page.fill("#sign-up-password", "short");
+    await page.fill("#sign-up-confirm-password", "different");
     await authPage.submitSignUpForm();
 
     await expect(page).toHaveURL(/.*sign-up/);

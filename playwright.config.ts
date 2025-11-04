@@ -16,7 +16,7 @@ export default defineConfig({
   },
 
   globalSetup: undefined,
-  globalTeardown: undefined,
+  globalTeardown: "./e2e/global-teardown.ts",
 
   projects: [
     {

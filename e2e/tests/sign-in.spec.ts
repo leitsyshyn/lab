@@ -1,5 +1,6 @@
 import {
   clearAuthState,
+  deleteTestUser,
   generateTestUser,
   waitForToast,
 } from "../helpers/auth-helpers";
@@ -24,6 +25,10 @@ test.describe("Sign In Flow", () => {
     ]).catch(() => {});
 
     await page.close();
+  });
+
+  test.afterAll(async () => {
+    await deleteTestUser(testUser.email);
   });
 
   test.beforeEach(async ({ page }) => {

@@ -1,5 +1,6 @@
 import {
   clearAuthState,
+  deleteTestUser,
   generateTestUser,
   waitForToast,
 } from "../helpers/auth-helpers";
@@ -18,6 +19,10 @@ test.describe("Forgot Password Flow", () => {
     await authPage.signUp(testUser);
     await waitForToast(page, "Account created successfully");
     await page.close();
+  });
+
+  test.afterAll(async () => {
+    await deleteTestUser(testUser.email);
   });
 
   test.beforeEach(async ({ page }) => {

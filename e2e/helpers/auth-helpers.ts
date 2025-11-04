@@ -1,12 +1,47 @@
 import type { Page } from "@playwright/test";
+import { eq, like } from "drizzle-orm";
+import { db } from "@/db/drizzle";
+import { account, session, user, verification } from "@/db/schema/auth";
+
+const testUsersCreated = new Set<string>();
 
 export function generateTestUser() {
   const timestamp = Date.now();
+  const email = `test-${timestamp}@example.com`;
+  testUsersCreated.add(email);
   return {
     name: `Test User ${timestamp}`,
-    email: `test-${timestamp}@example.com`,
+    email,
     password: "TestPassword123!",
   };
+}
+
+export async function deleteTestUser(email: string) {
+  try {
+    const users = await db.select().from(user).where(eq(user.email, email));
+    if (users.length > 0) {
+      const userId = users[0].id;
+      await db.delete(session).where(eq(session.userId, userId));
+      await db.delete(account).where(eq(account.userId, userId));
+      await db.delete(verification).where(eq(verification.identifier, email));
+      await db.delete(user).where(eq(user.id, userId));
+    }
+    testUsersCreated.delete(email);
+  } catch (error) {
+    console.error(`Failed to delete test user ${email}:`, error);
+  }
+}
+
+export async function cleanupAllTestUsers() {
+  try {
+    await db
+      .delete(verification)
+      .where(like(verification.identifier, "test-%"));
+    await db.delete(user).where(like(user.email, "test-%"));
+    testUsersCreated.clear();
+  } catch (error) {
+    console.error("Failed to cleanup test users:", error);
+  }
 }
 
 export class AuthPage {
