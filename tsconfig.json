@@ -28,7 +28,9 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "scripts/tsv-to-jsonl.js",
+    "scripts/ts-bootstrap.js"
   ],
   "exclude": ["node_modules"]
 }

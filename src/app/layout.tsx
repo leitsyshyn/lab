@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { Toaster } from "@/components/ui/sonner";
+import LiveblocksProvider from "@/providers/liveblocks-provider";
 import TanStackQueryClientProvider from "../providers/query-client-provider";
 import { ThemeProvider } from "../providers/theme-provider";
 
@@ -38,8 +39,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
-            <Toaster richColors />
+            <LiveblocksProvider>
+              {children}
+              <Toaster richColors />
+            </LiveblocksProvider>
           </ThemeProvider>
         </TanStackQueryClientProvider>
       </body>

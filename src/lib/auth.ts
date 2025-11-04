@@ -6,7 +6,7 @@ import Stripe from "stripe";
 import { reactResetPasswordEmail } from "@/components/auth/emails/reset-password-email";
 import { reactVerifyEmailEmail } from "@/components/auth/emails/verification-email";
 
-import { db } from "@/db/drizzle";
+import { db } from "@/db/drizzle-edge";
 import * as schema from "@/db/schema/auth";
 import { resend } from "./email";
 
@@ -29,7 +29,7 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: !isTestMode,
+    requireEmailVerification: false, // !isTestMode,
     async sendResetPassword({ user, url }) {
       if (isTestMode) {
         console.log(`[TEST MODE] Password reset link: ${url}`);

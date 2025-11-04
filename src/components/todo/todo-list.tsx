@@ -4,6 +4,7 @@ import {
   closestCenter,
   DndContext,
   type DragEndEvent,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -34,6 +35,8 @@ interface TodoListProps {
   onDelete: (id: string) => void;
   onUpdate: (id: string, text: string) => Promise<void>;
   onReorder: (todos: Todo[]) => void;
+  onDragStart?: (id: string) => void;
+  onDragEnd?: () => void;
 }
 
 function SortableTodoItem({
@@ -83,6 +86,8 @@ export function TodoList({
   onDelete,
   onUpdate,
   onReorder,
+  onDragStart,
+  onDragEnd: onDragEndCallback,
 }: TodoListProps) {
   const [items, setItems] = useState(todos);
 
@@ -97,8 +102,14 @@ export function TodoList({
     setItems(todos);
   }, [todos]);
 
+  const handleDragStart = (event: DragStartEvent) => {
+    onDragStart?.(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+
+    onDragEndCallback?.();
 
     if (over && active.id !== over.id) {
       const oldIndex = items.findIndex((item) => item.id === active.id);
@@ -122,6 +133,7 @@ export function TodoList({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>

@@ -11,6 +11,7 @@ import {
 } from "@/actions/todo-actions";
 import { AddTodoForm } from "@/components/todo/add-todo-form";
 import { TodoList } from "@/components/todo/todo-list";
+import type { Todo } from "@/types/todo-types";
 import {
   Card,
   CardContent,
@@ -19,19 +20,12 @@ import {
   CardTitle,
 } from "../ui/card";
 
-interface Todo {
-  id: string;
-  text: string;
-  done: boolean;
-  position: number;
-}
-
-interface TodoPageClientProps {
+interface TodoPageProps {
   initialTodos: Todo[];
   listId: string;
 }
 
-export function TodoPageClient({ initialTodos, listId }: TodoPageClientProps) {
+export function TodoPage({ initialTodos, listId }: TodoPageProps) {
   const [todos, setTodos] = useState<Todo[]>(initialTodos);
 
   const handleCreateTodo = async (text: string) => {

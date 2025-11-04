@@ -15,6 +15,7 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
+import { cn } from "@/lib/utils";
 import { Field } from "../ui/field";
 
 const editTodoSchema = z.object({
@@ -27,11 +28,12 @@ interface TodoItemProps {
   id: string;
   text: string;
   done: boolean;
-  onToggle: (id: string, done: boolean) => void;
-  onDelete: (id: string) => void;
-  onUpdate: (id: string, text: string) => Promise<void>;
+  onToggle?: (id: string, done: boolean) => void;
+  onDelete?: (id: string) => void;
+  onUpdate?: (id: string, text: string) => Promise<void>;
   isDragging?: boolean;
   dragHandleProps?: React.HTMLAttributes<HTMLButtonElement>;
+  className?: string;
 }
 
 export function TodoItem({
@@ -43,6 +45,7 @@ export function TodoItem({
   onUpdate,
   isDragging,
   dragHandleProps,
+  className,
 }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -59,6 +62,7 @@ export function TodoItem({
       return;
     }
 
+    if (!onUpdate) return;
     await onUpdate(id, data.text);
     setIsEditing(false);
   };
@@ -73,18 +77,27 @@ export function TodoItem({
   };
 
   return (
-    <Item variant="outline" style={{ opacity: isDragging ? 0.5 : 1 }}>
+    <Item
+      variant="muted"
+      className={cn(
+        className,
+        { "opacity-50": isDragging },
+        "z-9999 pointer-none",
+      )}
+    >
       <ItemMedia>
         <Button variant="ghost" size="icon" {...dragHandleProps}>
           <GripVertical />
         </Button>
       </ItemMedia>
       <ItemMedia>
-        <Checkbox
-          id={`todo-${id}`}
-          checked={done}
-          onCheckedChange={(checked) => onToggle(id, checked as boolean)}
-        />
+        {onToggle && (
+          <Checkbox
+            id={`todo-${id}`}
+            checked={done}
+            onCheckedChange={(checked) => onToggle(id, checked as boolean)}
+          />
+        )}
       </ItemMedia>
       <ItemContent>
         {isEditing ? (
@@ -138,7 +151,7 @@ export function TodoItem({
         )}
       </ItemContent>
       <ItemActions>
-        {!isEditing && (
+        {!isEditing && onUpdate && (
           <Button
             variant="outline"
             size="icon"
@@ -148,9 +161,11 @@ export function TodoItem({
             <Pencil />
           </Button>
         )}
-        <Button variant="outline" size="icon" onClick={() => onDelete(id)}>
-          <Trash2 className="text-destructive" />
-        </Button>
+        {onDelete && (
+          <Button variant="outline" size="icon" onClick={() => onDelete(id)}>
+            <Trash2 className="text-destructive" />
+          </Button>
+        )}
       </ItemActions>
     </Item>
   );
