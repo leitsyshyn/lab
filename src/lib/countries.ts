@@ -2,10 +2,9 @@ import countries from "world-countries";
 
 export const COUNTRIES = countries
   .map((country) => ({
-    // World Bank uses ISO 3166-1 alpha-3 codes
     code: country.cca3,
     name: country.name.common,
-    flag: country.flag, // Emoji flag
+    flag: country.flag,
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
 

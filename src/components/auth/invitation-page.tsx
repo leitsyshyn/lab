@@ -55,14 +55,12 @@ export default function InvitationPage({ invitationId }: InvitationPageProps) {
       return;
     }
 
-    // Fetch invitation details
     authClient.organization
       .getInvitation({
         query: { id: invitationId },
       })
       .then((result) => {
         if (result.error) {
-          // Redirect to sign-in if unauthenticated
           if (
             result.error.status === 401 ||
             result.error.code === "UNAUTHORIZED"

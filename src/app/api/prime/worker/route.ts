@@ -1,4 +1,3 @@
-// app/api/prime/worker/route.ts
 import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
 import type { NextRequest } from "next/server";
 import {
@@ -13,7 +12,7 @@ import { redis } from "@/lib/redis";
 export const runtime = "nodejs";
 
 async function handler(req: NextRequest) {
-  console.log("[prime-worker] invoked"); // <- watch for this in `npm run dev`
+  console.log("[prime-worker] invoked");
 
   const { jobId, limit } = (await req.json()) as {
     jobId: string;
@@ -102,6 +101,5 @@ async function handler(req: NextRequest) {
   }
 }
 
-// env toggle
 const USE_VERIFY = process.env.SKIP_QSTASH_VERIFY !== "1";
 export const POST = USE_VERIFY ? verifySignatureAppRouter(handler) : handler;

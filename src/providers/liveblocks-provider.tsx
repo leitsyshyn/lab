@@ -10,7 +10,6 @@ export default function LiveblocksProvider({
 }) {
   return (
     <LiveblocksProviderReact
-      //   publicApiKey={process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_KEY!}
       authEndpoint="/api/liveblocks-auth"
     >
       {children}

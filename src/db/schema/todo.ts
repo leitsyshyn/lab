@@ -17,7 +17,7 @@ export const list = pgTable("list", {
   organizationId: text("organization_id").references(() => organization.id, {
     onDelete: "set null",
   }),
-  roomId: text("room_id").unique().notNull(), // unique -> auto index
+  roomId: text("room_id").unique().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -33,7 +33,7 @@ export const todo = pgTable("todo", {
     .references(() => list.id, { onDelete: "cascade" }),
   text: text("text").notNull(),
   done: boolean("done").notNull().default(false),
-  position: integer("position").notNull(), // DnD ordering (10, 20, 30, ...)
+  position: integer("position").notNull(),
   assignedTo: text("assigned_to").references(() => user.id, {
     onDelete: "set null",
   }),

@@ -96,7 +96,6 @@ export function GdpChart() {
     };
   }, [selectedCountries, fromYear, toYear]);
 
-  // Merge data from all countries by year
   const mergedData = React.useMemo(() => {
     if (countriesData.length === 0) return [];
 
@@ -117,7 +116,6 @@ export function GdpChart() {
     return Array.from(yearMap.values()).sort((a, b) => a.year - b.year);
   }, [countriesData]);
 
-  // Create dynamic chart config with colors generated from country names
   const chartConfig = React.useMemo(() => {
     const config: ChartConfig = {};
     selectedCountries.forEach((countryCode) => {

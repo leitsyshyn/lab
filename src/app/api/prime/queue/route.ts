@@ -14,13 +14,13 @@ export const runtime = "nodejs";
 const MAX_LIMIT = 500_000_000_000_000_000;
 
 function getWorkerUrl() {
-  //   const base =
-  //     process.env.QSTASH_WORKER_BASE_URL ??
-  //     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
-  //   if (!base) {
-  //     throw new Error("Set QSTASH_WORKER_BASE_URL or VERCEL_URL for worker URL");
-  //   }
-  const base = "https://happy-eggs-scream.loca.lt";
+  const base = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "";
+  if (!base) {
+    throw new Error("Set QSTASH_WORKER_BASE_URL or VERCEL_URL for worker URL");
+  }
+
   return `${base}/api/prime/worker`;
 }
 
@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
   const sKey = statusKey(jobId);
   const rKey = resultKey(jobId);
 
-  // 1) Check for cached finished result
   const cachedResult = await redis.get<JobResultValue>(rKey);
   if (cachedResult && cachedResult.status === "finished") {
     return new Response(
@@ -58,7 +57,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 2) Check running/queued status
   const existingStatus = await redis.get<JobStatusValue>(sKey);
   if (existingStatus && existingStatus.status !== "error") {
     return new Response(
@@ -73,7 +71,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 3) Create initial status and publish job via QStash
   const now = Date.now();
   const initialStatus: JobStatusValue = {
     status: "queued",
@@ -92,6 +89,10 @@ export async function POST(req: NextRequest) {
   await qstash.publishJSON({
     url: workerUrl,
     body: { jobId, limit },
+    headers: {
+      "x-vercel-protection-bypass":
+        process.env.VERCEL_AUTOMATION_BYPASS_SECRET!,
+    },
     retries: 3,
   });
 

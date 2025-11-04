@@ -13,20 +13,51 @@ import { resend } from "./email";
 const stripeClient = new Stripe(
   process.env.STRIPE_SECRET_KEY || "sk_test_placeholder",
   {
-    apiVersion: "2025-09-30.clover",
+    apiVersion: "2025-10-29.clover",
   },
 );
 
 const isTestMode =
   process.env.NODE_ENV === "test" || process.env.PLAYWRIGHT_TEST === "true";
 
+function getBaseURL(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  if (process.env.BETTER_AUTH_URL) {
+    return process.env.BETTER_AUTH_URL;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return "http://localhost:3000";
+}
+
+function getTrustedOrigins(): string[] {
+  const origins = new Set<string>([
+    "http://localhost:3000",
+    "https://localhost:3000",
+  ]);
+
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    origins.add(process.env.NEXT_PUBLIC_APP_URL);
+  }
+
+  if (process.env.VERCEL_URL) {
+    origins.add(`https://${process.env.VERCEL_URL}`);
+  }
+
+  return Array.from(origins);
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
   }),
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: getBaseURL(),
   secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins: getTrustedOrigins(),
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // !isTestMode,
@@ -77,7 +108,7 @@ export const auth = betterAuth({
   plugins: [
     organization({
       async sendInvitationEmail(data) {
-        const inviteLink = `${process.env.BETTER_AUTH_URL}/accept-invitation/${data.id}`;
+        const inviteLink = `${getBaseURL()}/accept-invitation/${data.id}`;
         await resend.emails.send({
           from: process.env.BETTER_AUTH_EMAIL_FROM as string,
           to: data.email,

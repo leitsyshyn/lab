@@ -11,8 +11,6 @@ export const ourFileRouter = {
         headers: await headers(),
       });
 
-      // Allow unauthenticated users for signup flow
-      // For edit profile, we'll check on the client side
       return { userId: session?.user?.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {

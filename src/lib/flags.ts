@@ -15,7 +15,6 @@ const getUserSubscription = dedupe(async () => {
       return { hasPlusPlan: false, user: null };
     }
 
-    // First, get the user's stripeCustomerId from the user table
     const userRecord = await db
       .select()
       .from(user)
@@ -27,7 +26,6 @@ const getUserSubscription = dedupe(async () => {
       return { hasPlusPlan: false, user: session.user };
     }
 
-    // Then, get the subscription using the Stripe customer ID
     const userSubscription = await db
       .select()
       .from(subscription)

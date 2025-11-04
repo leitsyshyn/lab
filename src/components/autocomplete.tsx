@@ -1,10 +1,9 @@
-// components/TermCombobox.tsx
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import debounce from "lodash.debounce";
 import * as React from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -20,17 +19,25 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-type Item = { id: string; term: string; seq: number };
+type Item = {
+  id: string;
+  term: string;
+  seq: number;
+  year?: number | null;
+  titleType?: string | null;
+};
 
 async function fetchPage(q: string, skip: number, limit: number) {
   const params = new URLSearchParams();
-  if (q) params.set("q", q);
+  params.set("q", q);
   params.set("skip", String(skip));
   params.set("limit", String(limit));
+
   const res = await fetch(`/api/search?${params.toString()}`, {
     cache: "no-store",
   });
   if (!res.ok) throw new Error("fetch_failed");
+
   return res.json() as Promise<{
     items: Item[];
     total: number;
@@ -38,124 +45,168 @@ async function fetchPage(q: string, skip: number, limit: number) {
   }>;
 }
 
+const MIN_CHARS = 3;
+
 export function TermCombobox({
   onSelect,
-  limit = 50,
+  limit = 30,
 }: {
   onSelect?: (item: Item) => void;
   limit?: number;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [q, setQ] = React.useState("");
+  const [input, setInput] = React.useState("");
+  const [query, setQuery] = React.useState("");
+  const [selected, setSelected] = React.useState<Item | null>(null);
 
-  const setQDebounced = React.useMemo(
-    () => debounce((v: string) => setQ(v), 200),
+  const debouncedSetQuery = React.useMemo(
+    () =>
+      debounce((value: string) => {
+        setQuery(value.trim());
+      }, 250),
     [],
   );
-  React.useEffect(() => () => setQDebounced.cancel(), [setQDebounced]);
 
-  const { data, fetchNextPage, hasNextPage, isFetching, isLoading } =
-    useInfiniteQuery({
-      queryKey: ["terms", q, limit],
-      queryFn: async ({ pageParam }) => {
-        const skip = typeof pageParam === "number" ? pageParam : 0;
-        const page = await fetchPage(q, skip, limit);
-        return { ...page, skip };
-      },
-      initialPageParam: 0,
-      getNextPageParam: (lastPage, pages) => {
-        if (!lastPage.nextLink) return undefined;
-        // next skip = accumulated item count (works with stable seq order)
-        const acc = pages.reduce(
-          (n: number, p: any) => n + (p.items?.length ?? 0),
-          0,
-        );
-        return acc;
-      },
-    });
+  React.useEffect(() => {
+    return () => debouncedSetQuery.cancel();
+  }, [debouncedSetQuery]);
 
-  const flat = React.useMemo(
+  const canSearch = query.length >= MIN_CHARS;
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetching,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ["terms", query, limit],
+    enabled: canSearch,
+    queryFn: async ({ pageParam }) => {
+      const skip = typeof pageParam === "number" ? pageParam : 0;
+      const page = await fetchPage(query, skip, limit);
+      return { ...page, skip };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) => {
+      if (!lastPage.nextLink) return undefined;
+      const acc = pages.reduce(
+        (n: number, p: any) => n + (p.items?.length ?? 0),
+        0,
+      );
+      return acc; // next skip
+    },
+  });
+
+  // 1) flatten pages
+  const flatRaw = React.useMemo(
     () => (data?.pages ?? []).flatMap((p) => p.items),
     [data],
   );
 
-  const parentRef = React.useRef<HTMLDivElement | null>(null);
-  const rowVirtualizer = useVirtualizer({
-    count: hasNextPage ? flat.length + 1 : flat.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 36,
-    overscan: 8,
-  });
+  // 2) dedupe by id to avoid duplicate-key warnings if backend overlaps pages
+  const flat = React.useMemo(() => {
+    const byId = new Map<string, Item>();
+    for (const item of flatRaw) {
+      if (!byId.has(item.id)) {
+        byId.set(item.id, item);
+      }
+    }
+    return Array.from(byId.values());
+  }, [flatRaw]);
 
-  React.useEffect(() => {
-    const items = rowVirtualizer.getVirtualItems();
-    const last = items[items.length - 1];
-    if (!last) return;
-    if (last.index >= flat.length - 1 && hasNextPage && !isFetching) {
+  const handleScroll: React.UIEventHandler<HTMLDivElement> = (event) => {
+    const target = event.currentTarget;
+    const nearBottom =
+      target.scrollTop + target.clientHeight >= target.scrollHeight - 48;
+
+    if (nearBottom && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
-  }, [rowVirtualizer, flat.length, hasNextPage, isFetching, fetchNextPage]);
+  };
+
+  const displayLabel = selected?.term || "Select term…";
+
+  const emptyMessage = !canSearch
+    ? `Type at least ${MIN_CHARS} characters to search.`
+    : isLoading || isFetching
+      ? "Loading…"
+      : "No results.";
+
+  const formatMeta = (item: Item) => {
+    const parts: string[] = [];
+    if (item.titleType) parts.push(item.titleType);
+    if (item.year) parts.push(String(item.year));
+    return parts.join(" · ");
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full justify-between">
-          {q || "Select term..."}
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between"
+        >
+          {displayLabel}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Type to search…"
-            onValueChange={(v) => setQDebounced(v)}
+            value={input}
+            onValueChange={(value) => {
+              setInput(value);
+              debouncedSetQuery(value);
+            }}
+            placeholder={`Search titles (min ${MIN_CHARS} chars)…`}
           />
-          <CommandEmpty>{isLoading ? "Loading…" : "No results."}</CommandEmpty>
+
+          <CommandEmpty>{emptyMessage}</CommandEmpty>
 
           <CommandList
-            ref={parentRef}
-            style={{ height: 300, overflow: "auto", position: "relative" }}
+            className="max-h-72 overflow-auto"
+            onScroll={handleScroll}
           >
-            <div
-              style={{
-                height: rowVirtualizer.getTotalSize(),
-                width: "100%",
-                position: "relative",
-              }}
-            >
-              {rowVirtualizer.getVirtualItems().map((vi) => {
-                const isLoader = vi.index >= flat.length;
-                const item = flat[vi.index];
+            <CommandGroup>
+              {flat.map((item) => {
+                const meta = formatMeta(item);
                 return (
-                  <div
-                    key={isLoader ? "loader" : item.seq} // stable key via numeric sort key
-                    data-index={vi.index}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      transform: `translateY(${vi.start}px)`,
+                  <CommandItem
+                    key={item.id} // unique + stable
+                    value={item.id} // also unique, avoids multi-highlight for same term
+                    onSelect={() => {
+                      setSelected(item);
+                      onSelect?.(item);
+                      setOpen(false);
                     }}
                   >
-                    {isLoader ? (
-                      <div className="px-2 py-2 text-sm text-muted-foreground">
-                        {hasNextPage ? "Loading more…" : "End of results"}
-                      </div>
-                    ) : (
-                      <CommandItem
-                        value={item.term}
-                        onSelect={() => {
-                          onSelect?.(item);
-                          setOpen(false);
-                        }}
-                      >
-                        {item.term}
-                      </CommandItem>
-                    )}
-                  </div>
+                    <div className="flex flex-col">
+                      <span>{item.term}</span>
+                      {meta && (
+                        <span className="text-xs text-muted-foreground">
+                          {meta}
+                        </span>
+                      )}
+                    </div>
+                  </CommandItem>
                 );
               })}
-            </div>
+            </CommandGroup>
+
+            {isFetchingNextPage && (
+              <div className="px-3 py-2 text-xs text-muted-foreground">
+                Loading more…
+              </div>
+            )}
+            {!hasNextPage && flat.length > 0 && (
+              <div className="px-3 py-2 text-xs text-muted-foreground">
+                End of results
+              </div>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

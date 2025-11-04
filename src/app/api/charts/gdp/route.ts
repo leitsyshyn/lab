@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
     `?format=json&per_page=1000&date=${from}:${to}`;
 
   const res = await fetch(url, {
-    // cache on the server a bit so you don't hammer the API
     next: { revalidate: 60 * 60 * 24 }, // 1 day
   });
 
@@ -44,7 +43,6 @@ export async function GET(req: NextRequest) {
       return { year, value };
     })
     .filter((d) => Number.isFinite(d.year))
-    // WB returns descending years, sort ascending
     .sort((a, b) => a.year - b.year);
 
   return NextResponse.json({ data });

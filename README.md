@@ -2,6 +2,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Option 1: Local Development
+
 First, run the development server:
 
 ```bash
@@ -15,6 +17,18 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Option 2: Docker Development
+
+Run the entire application stack (Next.js + PostgreSQL) using Docker:
+
+```bash
+# First, copy .env.docker to .env.local and add your API keys
+cp .env.docker .env.local
+
+# Then start the services
+docker compose up
+```
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

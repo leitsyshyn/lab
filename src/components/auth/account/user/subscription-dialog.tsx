@@ -55,7 +55,6 @@ export function SubscriptionDialog() {
         successUrl: `${window.location.origin}/account?upgraded=true`,
         cancelUrl: `${window.location.origin}/account`,
       });
-      // The redirect happens automatically
     } catch (error) {
       toast.error("Failed to start checkout");
       console.error(error);
